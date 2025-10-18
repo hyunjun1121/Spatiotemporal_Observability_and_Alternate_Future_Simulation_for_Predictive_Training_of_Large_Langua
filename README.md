@@ -40,6 +40,16 @@ make real-c4small-fastlock
 
 - Hugging Face streaming uses `Salesforce/wikitext` (config `wikitext-103-v1`). Ensure `pip install datasets` and `hf auth login` or preload cache (`HF_HOME`) before running real-data pipelines.
 
+- Set `NCCL_P2P_DISABLE=1` on GPU nodes (e.g., `export NCCL_P2P_DISABLE=1`).
+
+- Launch the tmux automation via:
+  ```bash
+  tmux new-session -d -s realrun "bash -lc '~/Spatiotemporal_Observability_and_Alternate_Future_Simulation_for_Predictive_Training_of_Large_Langua/run_real_experiments.sh'"
+  ```
+  Attach with `tmux attach -t realrun` and logs go to `logs/*.log`.
+
+- Script: `run_real_experiments.sh` (wikitext fastlock → c4 fastlock → `make paper`).
+
 - 단일 조합 검증은 `scripts/run_replicates.sh --real_data ... --baseline ... --method ... --config ...` 활용.
 
 ## Paper & Documentation
