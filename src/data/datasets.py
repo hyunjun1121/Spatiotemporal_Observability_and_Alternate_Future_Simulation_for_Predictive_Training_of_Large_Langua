@@ -83,7 +83,7 @@ class StreamingLM(IterableDataset):
             # restart stream if it exhausts
 
 
-def _hf_text_factory(name: str, real_data: str) -> Callable[[], Iterable[str]]:
+def _hf_text_factory(name: str, real_data: str, config_name: Optional[str] = None) -> Callable[[], Iterable[str]]:
     try:
         from datasets import load_dataset  # type: ignore
     except Exception as exc:  # pragma: no cover
@@ -91,12 +91,26 @@ def _hf_text_factory(name: str, real_data: str) -> Callable[[], Iterable[str]]:
 
     split = "train"
     if real_data == "wikitext":
-        dataset = load_dataset(name, split=split, streaming=True)
+        dataset_name = name or "Salesforce/wikitext"
+        config_to_use = config_name
+        if dataset_name == "wikitext-103":
+            dataset_name = "Salesforce/wikitext"
+            config_to_use = config_to_use or "wikitext-103-v1"
+        if dataset_name in {"wikitext", "Salesforce/wikitext"} and config_to_use is None:
+            config_to_use = "wikitext-103-v1"
+        if config_to_use:
+            dataset = load_dataset(dataset_name, config_to_use, split=split, streaming=True)
+        else:
+            dataset = load_dataset(dataset_name, split=split, streaming=True)
         return lambda: (ex.get("text", "") or "" for ex in dataset)
     if real_data == "c4":
-        dataset = load_dataset(name, "en", split=split, streaming=True)
+        config_to_use = config_name or "en"
+        dataset = load_dataset(name, config_to_use, split=split, streaming=True)
         return lambda: (ex.get("text", "") or "" for ex in dataset)
-    dataset = load_dataset(name, split=split, streaming=True)
+    if config_name:
+        dataset = load_dataset(name, config_name, split=split, streaming=True)
+    else:
+        dataset = load_dataset(name, split=split, streaming=True)
     return lambda: (ex.get("text", "") or "" for ex in dataset)
 
 
@@ -128,6 +142,7 @@ def build_dataloader(
     seq_len: int,
     real_data: str = "off",
     hf_name: Optional[str] = None,
+    hf_config: Optional[str] = None,
     offline_data_dir: Optional[str] = None,
 ) -> DataLoader:
     """모드와 설정에 맞는 DataLoader를 생성한다."""
@@ -157,8 +172,13 @@ def build_dataloader(
             return DataLoader(ds, batch_size=None)
 
         if hf_name is None:
-            hf_name = "wikitext-103" if real_data == "wikitext" else "c4"
-        text_factory = _hf_text_factory(hf_name, real_data)
+            hf_name = "Salesforce/wikitext" if real_data == "wikitext" else "c4"
+        if hf_config is None:
+            if real_data == "wikitext":
+                hf_config = "wikitext-103-v1"
+            elif real_data == "c4":
+                hf_config = "en"
+        text_factory = _hf_text_factory(hf_name, real_data, hf_config)
         ds = StreamingLM(text_factory, batch_size=batch_size, seq_len=seq_len)
         return DataLoader(ds, batch_size=None)
 

@@ -28,6 +28,8 @@ class RunContext:
     baseline: str
     method: str
     real_data: str
+    hf_name: Optional[str]
+    hf_config: Optional[str]
     config_path: Optional[str]
     devices: Optional[str]
     world_size: int
@@ -56,6 +58,8 @@ def new_run_dir(
     baseline: str = "none",
     method: str = "C",
     real_data: str = "off",
+    hf_name: Optional[str] = None,
+    hf_config: Optional[str] = None,
     config_snapshots: Optional[Dict[str, Any]] = None,
     config_path: Optional[str] = None,
     devices: Optional[str] = None,
@@ -89,6 +93,10 @@ def new_run_dir(
         "max_concurrent": max_concurrent,
         "resume_flag": bool(resume_flag),
     }
+    if hf_name is not None:
+        manifest["hf_name"] = hf_name
+    if hf_config is not None:
+        manifest["hf_config"] = hf_config
     if config_path is not None:
         manifest["config_path"] = config_path
     if devices is not None:
@@ -129,6 +137,8 @@ def new_run_dir(
         baseline=norm_baseline,
         method=norm_method,
         real_data=real_data,
+        hf_name=hf_name,
+        hf_config=hf_config,
         config_path=config_path,
         devices=devices,
         world_size=world_size,

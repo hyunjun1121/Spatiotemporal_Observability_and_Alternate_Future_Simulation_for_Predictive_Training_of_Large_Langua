@@ -38,6 +38,8 @@ make real-wt103-fastlock  # 조기락 활성화, max concurrency=2
 make real-c4small-fastlock
 ```
 
+- Hugging Face streaming uses `Salesforce/wikitext` (config `wikitext-103-v1`). Ensure `pip install datasets` and `hf auth login` or preload cache (`HF_HOME`) before running real-data pipelines.
+
 - 단일 조합 검증은 `scripts/run_replicates.sh --real_data ... --baseline ... --method ... --config ...` 활용.
 
 ## Paper & Documentation

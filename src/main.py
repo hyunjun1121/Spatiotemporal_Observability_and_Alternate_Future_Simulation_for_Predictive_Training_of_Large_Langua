@@ -27,6 +27,8 @@ def _apply_config_overrides(args: Any, config_path: str | None) -> Dict[str, Any
         args.real_data = config_data["real_data"]
     if "hf_name" in config_data:
         args.hf_name = config_data["hf_name"]
+    if "hf_config" in config_data:
+        args.hf_config = config_data["hf_config"]
     if "seq_len" in config_data:
         args.seq_len = int(config_data["seq_len"])
     if "batch_size" in config_data:
@@ -90,6 +92,7 @@ def main() -> None:
                 ablation_mode=args.method,
                 real_data=args.real_data,
                 hf_name=args.hf_name,
+                hf_config=args.hf_config,
                 offline_data_dir=args.offline_data_dir,
                 baseline=args.baseline,
                 method=args.method,

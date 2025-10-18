@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import random
 import shutil
 import subprocess
 import sys
@@ -205,6 +206,10 @@ class Scheduler:
                 env["WORLD_SIZE"] = str(self.args.world_size)
                 env["RUN_MAX_CONCURRENT"] = str(self.args.max_concurrent)
                 env["RUN_RESUME_FLAG"] = "1" if self.args.resume else "0"
+                env.setdefault("RANK", "0")
+                env.setdefault("LOCAL_RANK", "0")
+                env.setdefault("MASTER_ADDR", "127.0.0.1")
+                env.setdefault("MASTER_PORT", str(random.randint(20000, 59999)))
 
                 seed_dir.parent.mkdir(parents=True, exist_ok=True)
                 cmd = [
@@ -219,6 +224,8 @@ class Scheduler:
                     self.args.real_data,
                     "--hf_name",
                     self.args.hf_name,
+                    "--hf_config",
+                    self.args.hf_config,
                     "--seq_len",
                     str(self.args.seq_len),
                     "--batch_size",
@@ -407,10 +414,18 @@ def main() -> None:
 
     config_path = Path(args.config).resolve()
     config = _load_config(config_path)
+    if args.dry_run:
+        lock_path = Path(args.lock_json)
+        if lock_path.exists():
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
 
     dataset_mode = config.get("dataset", "hf")
     real_data = config.get("real_data", args.real_data)
-    hf_name = config.get("hf_name", "wikitext-103")
+    hf_name = config.get("hf_name", "Salesforce/wikitext")
+    hf_config = config.get("hf_config", "wikitext-103-v1")
     seq_len = int(config.get("seq_len", 1024))
     batch_size = int(config.get("batch_size", 16))
     steps = int(config.get("steps", 50000))
@@ -464,6 +479,7 @@ def main() -> None:
                 dataset_mode=dataset_mode,
                 real_data=real_data,
                 hf_name=hf_name,
+                hf_config=hf_config,
                 seq_len=seq_len,
                 batch_size=batch_size,
                 steps=steps,
@@ -502,6 +518,7 @@ def main() -> None:
         dataset_mode=dataset_mode,
         real_data=real_data,
         hf_name=hf_name,
+        hf_config=hf_config,
         seq_len=seq_len,
         batch_size=batch_size,
         steps=steps,

@@ -91,6 +91,8 @@ def _broadcast_run_context(
         run_ctx.baseline if run_ctx else None,
         run_ctx.method if run_ctx else None,
         run_ctx.real_data if run_ctx else None,
+        run_ctx.hf_name if run_ctx else None,
+        run_ctx.hf_config if run_ctx else None,
         run_ctx.config_path if run_ctx else None,
         run_ctx.devices if run_ctx else None,
         run_ctx.world_size if run_ctx else 1,
@@ -108,11 +110,13 @@ def _broadcast_run_context(
         baseline=payload[2] or "none",
         method=payload[3] or "C",
         real_data=payload[4] or "off",
-        config_path=payload[5],
-        devices=payload[6],
-        world_size=int(payload[7] or 1),
-        max_concurrent=int(payload[8] or 1),
-        resume_flag=bool(payload[9]),
+        hf_name=payload[5],
+        hf_config=payload[6],
+        config_path=payload[7],
+        devices=payload[8],
+        world_size=int(payload[9] or 1),
+        max_concurrent=int(payload[10] or 1),
+        resume_flag=bool(payload[11]),
     )
 
 
@@ -130,6 +134,7 @@ def train_baseline(
     ablation_mode: str = "C",
     real_data: str = "off",
     hf_name: Optional[str] = None,
+    hf_config: Optional[str] = None,
     offline_data_dir: Optional[str] = None,
     baseline: str = "none",
     method: str = "C",
@@ -173,6 +178,8 @@ def train_baseline(
         "noise_config": noise_cfg,
         "dataset_mode": dataset_mode,
         "real_data": real_data,
+        "hf_name": hf_name,
+        "hf_config": hf_config,
         "baseline": baseline,
         "method": method,
         "run": {
@@ -201,6 +208,8 @@ def train_baseline(
             baseline=baseline,
             method=method,
             real_data=real_data,
+            hf_name=hf_name,
+            hf_config=hf_config,
             config_snapshots=config_snapshot,
             config_path=config_path,
             devices=devices,
@@ -217,6 +226,7 @@ def train_baseline(
         seq_len,
         real_data=real_data,
         hf_name=hf_name,
+        hf_config=hf_config,
         offline_data_dir=offline_data_dir,
     )
 
