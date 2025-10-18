@@ -1,4 +1,4 @@
-.PHONY: smoke branch-test torchrun test ablate replay real-wt103 real-c4small real-wt103-lock real-c4small-lock lock paper docker
+.PHONY: smoke branch-test torchrun test ablate replay real-wt103 real-c4small real-wt103-lock real-c4small-lock real-wt103-fastlock real-c4small-fastlock lock paper docker
 
 smoke:
 	python -m src.main --mode baseline --dataset synthetic --steps 400 --batch_size 8 --seq_len 128
@@ -30,6 +30,12 @@ real-wt103-lock:
 real-c4small-lock:
 	bash scripts/run_replicates.sh --real_data c4 --baseline fixedlr,hypergrad,zclip,spamlite,pbtlite --method A,B,C,D --config assets/experiments/c4small_rc1.yaml
 
+real-wt103-fastlock:
+	bash scripts/run_replicates.sh --real_data wikitext --baseline fixedlr,hypergrad,zclip,spamlite,pbtlite --method A,B,C,D --config assets/experiments/wikitext_rc1.yaml --max_concurrent 2 --world_size_auto --budget_stop --retries 2
+
+real-c4small-fastlock:
+	bash scripts/run_replicates.sh --real_data c4 --baseline fixedlr,hypergrad,zclip,spamlite,pbtlite --method A,B,C,D --config assets/experiments/c4small_rc1.yaml --max_concurrent 2 --world_size_auto --budget_stop --retries 2
+
 lock: real-wt103-lock real-c4small-lock
 	python -m src.eval.aggregate --runs_root runs --paper_dir paper --groupby experiment,baseline,method --lock_json lock.json
 
@@ -37,4 +43,4 @@ paper:
 	python -m scripts.gen_paper_assets
 
 docker:
-	docker build -t stobs:rc1 .
+	docker build -t stobs:rc2 .

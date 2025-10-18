@@ -194,6 +194,10 @@ def aggregate_run(run_dir: str) -> Dict[str, float]:
         "real_data": manifest.get("real_data") or run_cfg.get("real_data"),
         "config_path": manifest.get("config_path"),
         "batch_size": batch_est,
+        "devices": manifest.get("devices"),
+        "world_size": manifest.get("world_size"),
+        "max_concurrent": manifest.get("max_concurrent"),
+        "resume_flag": manifest.get("resume_flag"),
     }
 
     lines.append("| Metadata | Value |")
@@ -235,18 +239,36 @@ def aggregate_run(run_dir: str) -> Dict[str, float]:
     return summary
 
 
-def _collect_run_records(runs_root: Path) -> List[Dict[str, Any]]:
+def _collect_run_records(runs_root: Path) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     records: List[Dict[str, Any]] = []
+    failures: List[Dict[str, Any]] = []
     for manifest_path in runs_root.rglob("run_manifest.json"):
         run_dir = manifest_path.parent
-        try:
-            summary = aggregate_run(str(run_dir))
-        except FileNotFoundError:
-            continue
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         seed = int(manifest.get("seed", 0))
-        records.append({"run_dir": run_dir, "manifest": manifest, "summary": summary, "seed": seed})
-    return records
+        try:
+            summary = aggregate_run(str(run_dir))
+            records.append({"run_dir": run_dir, "manifest": manifest, "summary": summary, "seed": seed})
+        except FileNotFoundError:
+            seed_dir = run_dir.parent
+            failure_file = seed_dir / "run_failure.json"
+            failure_payload: Dict[str, Any] = {}
+            if failure_file.exists():
+                try:
+                    failure_payload = json.loads(failure_file.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    failure_payload = {}
+            failures.append(
+                {
+                    "run_dir": str(run_dir),
+                    "experiment": manifest.get("experiment"),
+                    "baseline": manifest.get("baseline"),
+                    "method": manifest.get("method"),
+                    "seed": seed,
+                    "info": failure_payload,
+                }
+            )
+    return records, failures
 
 
 def _copy_run_figures(records: List[Dict[str, Any]], figs_dir: Path) -> List[str]:
@@ -405,12 +427,12 @@ def _write_lock_artifacts(lock_summary: Dict[str, Any], lock_json: Path, lock_md
     payload = {
         "generated_utc": datetime.utcnow().isoformat() + "Z",
         "criteria": {
-            "instability_events_per_100k": "-30% 이상 감소",
-            "wasted_flops_est_total": "-20% 이상 감소",
-            "val_pplx": "±0.5% 이내 변동",
+            "instability_events_per_100k": "-30% or better",
+            "wasted_flops_est_total": "-20% or better",
+            "val_pplx": "within +/-0.5%",
             "significance": {
                 "paired_t_test": "p < 0.05",
-                "cliffs_delta": "|δ| ≥ 0.33",
+                "cliffs_delta": "|delta| >= 0.33",
                 "bootstrap_ci": "95% CI",
             },
         },
@@ -422,7 +444,8 @@ def _write_lock_artifacts(lock_summary: Dict[str, Any], lock_json: Path, lock_md
     for dataset, info in lock_summary.items():
         status = "PASS" if info.get("passed") else "FAIL"
         reason = info.get("reason", "")
-        lines.append(f"- **{dataset}** - {status}: {reason}")
+        early = " (early stop by lock criteria)" if info.get("early_stop") else ""
+        lines.append(f"- **{dataset}** - {status}: {reason}{early}")
         metrics = info.get("metrics", {})
         for metric, stats in metrics.items():
             base_mean = stats.get("baseline_mean")
@@ -438,19 +461,20 @@ def _write_lock_artifacts(lock_summary: Dict[str, Any], lock_json: Path, lock_md
                 f"method={method_mean:.4f}" if method_mean == method_mean else "method=nan",
             ]
             if improvement is not None and improvement == improvement:
-                detail_parts.append(f"Δ={improvement:+.3%}")
+                detail_parts.append(f"rel_improve={improvement:+.3%}")
             elif rel is not None and rel == rel:
-                detail_parts.append(f"Δ={rel:+.3%}")
+                detail_parts.append(f"rel_diff={rel:+.3%}")
             if p_val is not None and p_val == p_val:
                 detail_parts.append(f"p={p_val:.3g}")
             if delta is not None and delta == delta:
-                detail_parts.append(f"δ={delta:.3f}")
+                detail_parts.append(f"delta={delta:.3f}")
             if ci_low is not None and ci_high is not None and ci_low == ci_low and ci_high == ci_high:
-                detail_parts.append(f"CI=[{ci_low:.4f},{ci_high:.4f}]")
+                detail_parts.append(f"ci=[{ci_low:.4f},{ci_high:.4f}]")
             lines.append(f"  - {metric}: " + ", ".join(detail_parts))
-        lines.append("")
+        pending = info.get("failures", [])
+        if pending:
+            lines.append(f"  - pending_failures={len(pending)}")
     lock_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
-
 
 def _get_group(
     groups: Dict[Tuple[str, ...], Dict[str, Any]],
@@ -518,11 +542,91 @@ def _build_results_rows(groups: Dict[Tuple[str, ...], Dict[str, Any]], group_col
 def _build_stats_and_lock(
     groups: Dict[Tuple[str, ...], Dict[str, Any]],
     group_cols: List[str],
+    failures: List[Dict[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     stats_rows: List[Dict[str, Any]] = []
     lock_summary: Dict[str, Any] = {}
     if not {"experiment", "baseline", "method"}.issubset(group_cols):
         return stats_rows, lock_summary
+
+    experiments = sorted({group["meta"].get("experiment", "") for group in groups.values()})
+    baselines = sorted({group["meta"].get("baseline", "") for group in groups.values()})
+    failure_map: Dict[str, List[Dict[str, Any]]] = {}
+    for failure in failures:
+        exp_name = failure.get("experiment")
+        if not exp_name:
+            continue
+        failure_map.setdefault(exp_name, []).append(failure)
+
+    for exp in experiments:
+        control = _get_group(groups, group_cols, {"experiment": exp, "baseline": "fixedlr", "method": "A"})
+        treatment = _get_group(groups, group_cols, {"experiment": exp, "baseline": "fixedlr", "method": "C"})
+        if control and treatment:
+            passed, reason, details = lock_judgement(control, treatment)
+            summary_entry: Dict[str, Any] = {
+                "passed": passed,
+                "reason": reason,
+                "metrics": details,
+                "replicates": min(control.get("replicates", 0), treatment.get("replicates", 0)),
+                "failures": failure_map.get(exp, []),
+            }
+            if passed:
+                summary_entry["early_stop"] = True
+                summary_entry["reason"] = f"{reason} | early stop by lock criteria"
+            lock_summary[exp] = summary_entry
+            for metric, info in details.items():
+                stats_rows.append(
+                    {
+                        "experiment": exp,
+                        "baseline": "fixedlr",
+                        "method": "C",
+                        "metric": metric,
+                        "baseline_mean": info.get("baseline_mean", float("nan")),
+                        "method_mean": info.get("method_mean", float("nan")),
+                        "mean_diff": info.get("mean_diff", float("nan")),
+                        "relative_diff": info.get("relative_diff", info.get("improvement", float("nan"))),
+                        "p_value": info.get("p_value", float("nan")),
+                        "cliffs_delta": info.get("cliffs_delta", float("nan")),
+                        "ci_low": info.get("ci_low", float("nan")),
+                        "ci_high": info.get("ci_high", float("nan")),
+                    }
+                )
+        else:
+            lock_summary[exp] = {
+                "passed": False,
+                "reason": "baseline or method C group missing.",
+                "metrics": {},
+                "replicates": 0,
+                "failures": failure_map.get(exp, []),
+            }
+
+        for baseline in baselines:
+            if baseline == "fixedlr":
+                continue
+            control_group = _get_group(groups, group_cols, {"experiment": exp, "baseline": baseline, "method": "A"})
+            method_c_group = _get_group(groups, group_cols, {"experiment": exp, "baseline": baseline, "method": "C"})
+            if not control_group or not method_c_group:
+                continue
+            _, _, details = lock_judgement(control_group, method_c_group)
+            for metric, info in details.items():
+                stats_rows.append(
+                    {
+                        "experiment": exp,
+                        "baseline": baseline,
+                        "method": "C",
+                        "metric": metric,
+                        "baseline_mean": info.get("baseline_mean", float("nan")),
+                        "method_mean": info.get("method_mean", float("nan")),
+                        "mean_diff": info.get("mean_diff", float("nan")),
+                        "relative_diff": info.get("relative_diff", info.get("improvement", float("nan"))),
+                        "p_value": info.get("p_value", float("nan")),
+                        "cliffs_delta": info.get("cliffs_delta", float("nan")),
+                        "ci_low": info.get("ci_low", float("nan")),
+                        "ci_high": info.get("ci_high", float("nan")),
+                    }
+                )
+
+    return stats_rows, lock_summary
 
     experiments = sorted({group["meta"].get("experiment", "") for group in groups.values()})
     baselines = sorted({group["meta"].get("baseline", "") for group in groups.values()})
@@ -599,6 +703,7 @@ def main() -> None:
     parser.add_argument("--paper_dir", default="paper", help="Directory to write paper assets")
     parser.add_argument("--groupby", default="experiment,baseline,method", help="Comma-separated manifest keys for grouping")
     parser.add_argument("--lock_json", default="lock.json", help="Path to write lock summary JSON")
+    parser.add_argument("--budget_signal", default=None, help="Path to write budget-stop signal JSON")
     args = parser.parse_args()
 
     if args.run_dir:
@@ -619,8 +724,8 @@ def main() -> None:
     figs_dir.mkdir(parents=True, exist_ok=True)
 
     group_cols = [col.strip() for col in args.groupby.split(",") if col.strip()]
-    records = _collect_run_records(runs_root)
-    if not records:
+    records, failures = _collect_run_records(runs_root)
+    if not records and not failures:
         print("No runs discovered under the specified root; skipping aggregation.")
         return
 
@@ -630,15 +735,25 @@ def main() -> None:
     results_rows = _build_results_rows(groups, group_cols)
     _write_results_tsv(results_rows, tables_dir / "results.tsv", group_cols)
 
-    stats_rows, lock_summary = _build_stats_and_lock(groups, group_cols)
+    stats_rows, lock_summary = _build_stats_and_lock(groups, group_cols, failures)
     _write_stats_tsv(stats_rows, tables_dir / "stats.tsv")
     _write_lock_artifacts(lock_summary, Path(args.lock_json), paper_dir / "RESULT_LOCK.md")
+    if args.budget_signal:
+        signal_path = Path(args.budget_signal)
+        signal_path.parent.mkdir(parents=True, exist_ok=True)
+        signal_path.write_text(
+            json.dumps({"datasets": lock_summary}, ensure_ascii=False, indent=2, default=_json_default),
+            encoding="utf-8",
+        )
 
     copied_plots = _copy_run_figures(records, figs_dir)
     plot_paths = _generate_ci_plots(groups, group_cols, figs_dir)
     for dataset, info in lock_summary.items():
         status = "PASS" if info.get("passed") else "FAIL"
-        print(f"[Result Lock] {dataset}: {status} - {info.get('reason', '')}")
+        reason = info.get("reason", "")
+        failures_count = len(info.get("failures", []))
+        extra = f" | failures={failures_count}" if failures_count else ""
+        print(f"[Result Lock] {dataset}: {status} - {reason}{extra}")
     if copied_plots:
         print(f"Copied {len(copied_plots)} run plots into {figs_dir}")
     if plot_paths:

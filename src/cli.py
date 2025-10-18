@@ -17,6 +17,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=400, help="Training steps")
     parser.add_argument("--seed", type=int, default=42, help="Base random seed")
     parser.add_argument("--replicates", type=int, default=1, help="Number of replicate runs")
+    parser.add_argument("--world_size", type=int, default=1, help="DDP world size metadata")
+    parser.add_argument("--devices", default=None, help="CUDA device mask metadata")
+    parser.add_argument("--max_concurrent", type=int, default=1, help="Scheduler max concurrency metadata")
+    parser.add_argument("--resume_flag", action="store_true", help="Indicates the run was resumed by scheduler")
     parser.add_argument("--config", default=None, help="Path to experiment config YAML")
     parser.add_argument(
         "--baseline",

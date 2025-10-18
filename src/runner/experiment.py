@@ -29,6 +29,10 @@ class RunContext:
     method: str
     real_data: str
     config_path: Optional[str]
+    devices: Optional[str]
+    world_size: int
+    max_concurrent: int
+    resume_flag: bool
 
 
 def _timestamp_hash() -> str:
@@ -54,6 +58,10 @@ def new_run_dir(
     real_data: str = "off",
     config_snapshots: Optional[Dict[str, Any]] = None,
     config_path: Optional[str] = None,
+    devices: Optional[str] = None,
+    world_size: int = 1,
+    max_concurrent: int = 1,
+    resume_flag: bool = False,
 ) -> RunContext:
     """실험 run 디렉터리를 생성하고 manifest/seed/config 스냅샷을 기록한다."""
 
@@ -77,9 +85,14 @@ def new_run_dir(
         "cuda_available": torch.cuda.is_available(),
         "device": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         "git_commit": _git_commit(),
+        "world_size": world_size,
+        "max_concurrent": max_concurrent,
+        "resume_flag": bool(resume_flag),
     }
     if config_path is not None:
         manifest["config_path"] = config_path
+    if devices is not None:
+        manifest["devices"] = devices
     with open(os.path.join(run_dir, "run_manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
@@ -117,6 +130,10 @@ def new_run_dir(
         method=norm_method,
         real_data=real_data,
         config_path=config_path,
+        devices=devices,
+        world_size=world_size,
+        max_concurrent=max_concurrent,
+        resume_flag=bool(resume_flag),
     )
 
 

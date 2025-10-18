@@ -100,9 +100,8 @@ def lock_judgement(
 
     details: Dict[str, Dict[str, float]] = {}
     messages: List[str] = []
-
-    # Primary criteria metrics
     results: Dict[str, bool] = {}
+
     for metric, summary_key in metrics_of_interest.items():
         base_vals = _aligned_metric(baseline_group, summary_key, shared)
         method_vals = _aligned_metric(method_group, summary_key, shared)
@@ -125,19 +124,17 @@ def lock_judgement(
             "ci_low": ci_low,
             "ci_high": ci_high,
         }
-
         if base_mean != 0.0:
             entry["relative_diff"] = (method_mean - base_mean) / base_mean
         else:
             entry["relative_diff"] = float("nan")
-
         details[metric] = entry
 
         if metric == "val_pplx":
             rel = entry["relative_diff"]
             cond = abs(rel) <= 0.005 if np.isfinite(rel) else False
             messages.append(
-                f"val_pplx Δ {rel:+.3%} (허용 ±0.5%) — {'충족' if cond else '미달'}"
+                f"val_pplx 변화 {rel:+.3%} (허용 +/-0.5%) -> {'충족' if cond else '미달'}"
             )
             results[metric] = cond
         elif metric == "instability_events_per_100k":
@@ -149,7 +146,7 @@ def lock_judgement(
                 and ci_high <= 0.0
             )
             messages.append(
-                f"instability_events_per_100k 개선 {improvement:+.3%} (요구 ≥30%), p={p_value:.3g}, δ={delta:.3f}, CI=[{ci_low:.4f},{ci_high:.4f}] — {'충족' if cond else '미달'}"
+                f"instability_events_per_100k 개선 {improvement:+.3%} (기준 >=30%), p={p_value:.3g}, delta={delta:.3f}, CI=[{ci_low:.4f},{ci_high:.4f}] -> {'충족' if cond else '미달'}"
             )
             entry["improvement"] = improvement
             results[metric] = cond
@@ -162,12 +159,11 @@ def lock_judgement(
                 and ci_high <= 0.0
             )
             messages.append(
-                f"wasted_flops_est 개선 {improvement:+.3%} (요구 ≥20%), p={p_value:.3g}, δ={delta:.3f}, CI=[{ci_low:.4f},{ci_high:.4f}] — {'충족' if cond else '미달'}"
+                f"wasted_flops_est 개선 {improvement:+.3%} (기준 >=20%), p={p_value:.3g}, delta={delta:.3f}, CI=[{ci_low:.4f},{ci_high:.4f}] -> {'충족' if cond else '미달'}"
             )
             entry["improvement"] = improvement
             results[metric] = cond
 
-    # Optional metrics stored for reporting
     for metric, summary_key in optional_metrics.items():
         base_vals = _aligned_metric(baseline_group, summary_key, shared)
         method_vals = _aligned_metric(method_group, summary_key, shared)

@@ -39,6 +39,16 @@ def _apply_config_overrides(args: Any, config_path: str | None) -> Dict[str, Any
         args.cooldown = int(config_data["cooldown"])
     if "epsilon_ucb" in config_data:
         args.epsilon_ucb = float(config_data["epsilon_ucb"])
+    if "world_size" in config_data:
+        args.world_size = int(config_data["world_size"])
+    if "devices" in config_data:
+        args.devices = str(config_data["devices"])
+    if "max_concurrent" in config_data:
+        args.max_concurrent = int(config_data["max_concurrent"])
+    if "resume_flag" in config_data:
+        args.resume_flag = bool(config_data["resume_flag"])
+    if "offline_data_dir" in config_data and config_data["offline_data_dir"]:
+        args.offline_data_dir = str(config_data["offline_data_dir"])
     if "baseline" in config_data:
         args.baseline = config_data["baseline"]
     if "method" in config_data:
@@ -86,6 +96,10 @@ def main() -> None:
                 replicate_id=idx,
                 config_path=config_path,
                 experiment_config=experiment_config,
+                devices=args.devices,
+                world_size=args.world_size,
+                max_concurrent=args.max_concurrent,
+                resume_flag=args.resume_flag,
             )
     else:
         space = load_yaml("assets/hparam_space.yaml")

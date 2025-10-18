@@ -13,6 +13,10 @@
 | real_data | off |
 | config_path | None |
 | batch_size | 4 |
+| devices | None |
+| world_size | None |
+| max_concurrent | None |
+| resume_flag | None |
 
 | Metric | Value |
 |---|---|

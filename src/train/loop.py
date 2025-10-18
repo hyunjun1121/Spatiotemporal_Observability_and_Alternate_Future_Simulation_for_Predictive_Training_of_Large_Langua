@@ -92,6 +92,10 @@ def _broadcast_run_context(
         run_ctx.method if run_ctx else None,
         run_ctx.real_data if run_ctx else None,
         run_ctx.config_path if run_ctx else None,
+        run_ctx.devices if run_ctx else None,
+        run_ctx.world_size if run_ctx else 1,
+        run_ctx.max_concurrent if run_ctx else 1,
+        run_ctx.resume_flag if run_ctx else False,
     ]
     dist.broadcast_object_list(payload, src=0)
     if rank == 0:
@@ -105,6 +109,10 @@ def _broadcast_run_context(
         method=payload[3] or "C",
         real_data=payload[4] or "off",
         config_path=payload[5],
+        devices=payload[6],
+        world_size=int(payload[7] or 1),
+        max_concurrent=int(payload[8] or 1),
+        resume_flag=bool(payload[9]),
     )
 
 
@@ -128,6 +136,10 @@ def train_baseline(
     replicate_id: int = 0,
     config_path: Optional[str] = None,
     experiment_config: Optional[Dict[str, Any]] = None,
+    devices: Optional[str] = None,
+    world_size: int = 1,
+    max_concurrent: int = 1,
+    resume_flag: bool = False,
 ) -> None:
     """Minimal Trainer + Monitor + Proxy + Branch Orchestrator 통합 루프."""
 
@@ -173,6 +185,12 @@ def train_baseline(
         config_snapshot["experiment_config"] = experiment_config
     if config_path is not None:
         config_snapshot["experiment_config_path"] = config_path
+    config_snapshot["scheduler"] = {
+        "devices": devices,
+        "world_size": world_size,
+        "max_concurrent": max_concurrent,
+        "resume_flag": resume_flag,
+    }
 
     run_ctx: Optional[RunContext] = None
     if is_master:
@@ -185,6 +203,10 @@ def train_baseline(
             real_data=real_data,
             config_snapshots=config_snapshot,
             config_path=config_path,
+            devices=devices,
+            world_size=world_size,
+            max_concurrent=max_concurrent,
+            resume_flag=resume_flag,
         )
     run_ctx = _broadcast_run_context(run_ctx, experiment=experiment_name, seed=seed, world=world, rank=rank)
 

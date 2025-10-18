@@ -29,4 +29,4 @@
 - [x] Limitations 섹션에서 proxy miscalibration/compute overhead/data bias 다룸
 - [x] Ethics Statement 섹션 초안 예약
 
-Generated at 2025-10-18T00:01:45.412113Z
+Generated at 2025-10-18T00:55:50.157859Z

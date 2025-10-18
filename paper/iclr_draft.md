@@ -23,7 +23,7 @@ TODO
 _No data available._
 
 ### 4.3 Result Lock Status
-- smoke_demo: FAIL — baseline 또는 method C 데이터가 부족합니다.
+- smoke_demo: FAIL — baseline or method C group missing.
 
 ## 5. Ablations
 - ablation summary 없음 (runs/ablations/* 실행 필요).
