@@ -1,0 +1,9 @@
+---
+lr_delta: ["-20%", "-10%", "0%", "+10%"]
+weight_decay_scale: [0.5, 1.0, 2.0]
+clip_policy: ["ZClip", "ARC", "None"]
+momentum_reset: [0, 1]
+data_reorder: ["none", "shuffle_block"]
+skip_batch: [0, 1]   # default off in runtime policy
+sample_size: 128
+topk_verify: 6

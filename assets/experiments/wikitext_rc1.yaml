@@ -1,0 +1,8 @@
+dataset: hf
+real_data: wikitext
+hf_name: wikitext-103
+seq_len: 1024
+batch_size: 16
+steps: 50000
+eval_every: 1000
+replicates: 3

@@ -1,0 +1,80 @@
+uncertainty_config:
+  window: 512
+  ema_decay: 0.98
+  zscore_eps: 1.0e-06
+  weights:
+    volatility: 0.5
+    entropy: 0.3
+    disagreement: 0.2
+  threshold:
+    trigger_z: 2.5
+    hysteresis_z: 3.2
+    consecutive: 3
+  cooldown_steps: 300
+  signals:
+    volatility:
+      loss_residual: true
+      grad_norm_delta: true
+    entropy:
+      attention_entropy: true
+      activation_entropy: true
+    disagreement:
+      forecasters: 3
+      horizon: 2000
+  logging:
+    write_every: 50
+branch_policy:
+  score:
+    alpha: 1.0
+    beta: 0.7
+    gamma: 0.3
+  accept:
+    risk_quantile_lt: 0.2
+    require_volatility_drop: true
+    min_short_rollout_steps: 50
+  verification:
+    max_parallel: 6
+    budget_steps: 400
+  bandit:
+    algo: ucb1
+    epsilon: 0.1
+  cooldown_steps: 300
+proxy_config:
+  model: mlp
+  hidden_dim: 256
+  layers: 4
+  horizon: 2000
+  subsample_rate: 50
+  features:
+    scalars:
+    - loss
+    - grad_norm
+    - lr
+    - weight_decay
+    - clip_bound
+    flags:
+    - momentum_reset
+    vectors:
+    - attn_entropy
+    - act_entropy
+  training:
+    batch_size: 256
+    lr: 0.001
+    weight_decay: 0.0
+  calibration:
+    method: conformal
+    quantile: 0.8
+noise_config:
+  rare_token_burst_pct: 0.02
+  very_long_seq_pct: 0.01
+  unicode_artifact_pct: 0.01
+  block_shuffle_ratio: 0.05
+  warmup_spike_steps: 500
+dataset_mode: synthetic
+real_data: 'off'
+baseline: none
+method: C
+run:
+  batch_size: 4
+  seq_len: 64
+  steps: 5

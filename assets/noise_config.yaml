@@ -1,0 +1,6 @@
+---
+rare_token_burst_pct: 0.02
+very_long_seq_pct: 0.01
+unicode_artifact_pct: 0.01
+block_shuffle_ratio: 0.05
+warmup_spike_steps: 500

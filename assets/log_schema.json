@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "properties": {
+    "run_id": {"type": "string"},
+    "experiment": {"type": "string"},
+    "step": {"type": "integer"},
+    "walltime": {"type": "number"},
+    "loss": {"type": "number"},
+    "val_loss": {"type": "number"},
+    "grad_norm": {"type": "number"},
+    "grad_zscore": {"type": "number"},
+    "lr": {"type": "number"},
+    "weight_decay": {"type": "number"},
+    "clip_policy": {"type": "string"},
+    "clip_bound": {"type": "number"},
+    "momentum_reset": {"type": "boolean"},
+    "attn_entropy": {"type": "array", "items": {"type": "number"}},
+    "act_entropy": {"type": "array", "items": {"type": "number"}},
+    "attn_entropy_mean": {"type": "number"},
+    "act_entropy_mean": {"type": "number"},
+    "uncertainty_index": {"type": "number"},
+    "triggered": {"type": "boolean"},
+    "event_spike_flag": {"type": "boolean"},
+    "event_trigger_flag": {"type": "boolean"},
+    "forecaster_mean": {"type": "number"},
+    "forecaster_var": {"type": "number"},
+    "proxy_pred": {
+      "type": "object",
+      "properties": {
+        "loss_at_N": {"type": "number"},
+        "risk_quantile": {"type": "number"},
+        "recovery_time": {"type": "number"}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "action_id": {"type": "string"},
+        "accepted": {"type": "boolean"},
+        "reason": {"type": "string"}
+      }
+    },
+    "branch": {
+      "type": "object",
+      "properties": {
+        "candidate_count": {"type": "integer"},
+        "verified": {"type": "integer"},
+        "accepted_action": {"type": "object"}
+      }
+    },
+    "cooldown_active": {"type": "boolean"},
+    "accept_rate": {"type": "number"},
+    "proxy_real_gap": {"type": "number"},
+    "wasted_flops_est": {"type": "number"},
+    "action_applied": {"type": "object"}
+  },
+  "required": ["step","loss","lr","grad_norm"]
+}

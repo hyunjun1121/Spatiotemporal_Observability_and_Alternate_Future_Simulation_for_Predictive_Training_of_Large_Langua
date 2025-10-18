@@ -1,0 +1,25 @@
+---
+window: 512
+ema_decay: 0.98
+zscore_eps: 1.0e-6
+weights:
+  volatility: 0.5
+  entropy: 0.3
+  disagreement: 0.2
+threshold:
+  trigger_z: 2.5
+  hysteresis_z: 3.2
+  consecutive: 3
+cooldown_steps: 300
+signals:
+  volatility:
+    loss_residual: true
+    grad_norm_delta: true
+  entropy:
+    attention_entropy: true
+    activation_entropy: true
+  disagreement:
+    forecasters: 3   # LSTM/GRU ensemble size
+    horizon: 2000
+logging:
+  write_every: 50

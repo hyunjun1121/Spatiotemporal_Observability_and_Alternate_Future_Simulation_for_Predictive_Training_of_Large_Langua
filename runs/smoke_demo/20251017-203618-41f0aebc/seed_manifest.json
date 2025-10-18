@@ -1,0 +1,6 @@
+{
+  "python": 42,
+  "numpy": 42,
+  "torch": 42,
+  "torch_cuda": 42
+}

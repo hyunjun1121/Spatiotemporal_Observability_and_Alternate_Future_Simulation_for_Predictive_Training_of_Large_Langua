@@ -1,0 +1,19 @@
+{
+  "steps": 5,
+  "instability_events": 0,
+  "instability_events_per_100k": 0.0,
+  "time_to_recover_mean": 0.0,
+  "time_to_recover_median": 0.0,
+  "branch_invoke_rate": 0.0,
+  "accept_rate": 0.0,
+  "proxy_real_gap_mean": 0.0,
+  "proxy_real_gap_median": 0.0,
+  "wasted_flops_est_total": 0.0,
+  "val_loss_mean": 10.991613578796386,
+  "val_pplx": 59374.111605800805,
+  "flops_est": 3019898880.0,
+  "energy_kj": 9.059696640000001e-07,
+  "co2e_tons": 1.0066329600000001e-13,
+  "timeline": [],
+  "top_actions": []
+}

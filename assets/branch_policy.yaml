@@ -1,0 +1,16 @@
+---
+score:
+  alpha: 1.0   # -E[loss@N]
+  beta: 0.7    # -risk
+  gamma: 0.3   # -recovery_time
+accept:
+  risk_quantile_lt: 0.2
+  require_volatility_drop: true
+  min_short_rollout_steps: 50
+verification:
+  max_parallel: 6
+  budget_steps: 400   # 6×~50~70
+bandit:
+  algo: "ucb1"
+  epsilon: 0.1
+cooldown_steps: 300

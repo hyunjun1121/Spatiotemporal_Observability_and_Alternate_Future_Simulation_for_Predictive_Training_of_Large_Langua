@@ -1,0 +1,17 @@
+---
+model: "mlp"
+hidden_dim: 256
+layers: 4
+horizon: 2000
+subsample_rate: 50
+features:
+  scalars: ["loss","grad_norm","lr","weight_decay","clip_bound"]
+  flags: ["momentum_reset"]
+  vectors: ["attn_entropy","act_entropy"]
+training:
+  batch_size: 256
+  lr: 1.0e-3
+  weight_decay: 0.0
+calibration:
+  method: "conformal"
+  quantile: 0.8

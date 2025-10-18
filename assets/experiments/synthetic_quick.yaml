@@ -1,0 +1,7 @@
+dataset: synthetic
+real_data: off
+seq_len: 256
+batch_size: 8
+steps: 400
+eval_every: 100
+replicates: 1

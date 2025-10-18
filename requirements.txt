@@ -1,0 +1,11 @@
+torch
+numpy
+pyyaml
+pydantic
+# optional: enable parquet I/O if available
+# pyarrow
+# fastparquet
+tqdm
+pytest
+# pandas
+matplotlib

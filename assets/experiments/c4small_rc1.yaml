@@ -1,0 +1,8 @@
+dataset: hf
+real_data: c4
+hf_name: c4
+seq_len: 1024
+batch_size: 16
+steps: 50000
+eval_every: 1000
+replicates: 3

@@ -1,0 +1,33 @@
+---
+version: 1
+model:
+  arch: "gpt2-medium"
+  dtype: "bf16"
+  params_sha256: "<filled_at_runtime>"
+optimizer:
+  type: "AdamW"
+  betas: [0.9, 0.95]
+  eps: 1.0e-8
+  weight_decay: "<runtime>"
+  moments_precision: "int8"
+lr_scheduler:
+  type: "cosine_warmup"
+  warmup_steps: 500
+  step: "<runtime>"
+rng:
+  python: "<state>"
+  numpy: "<state>"
+  torch: "<state>"
+  cuda: "<state>"
+dataloader:
+  sampler_state: "<state>"
+  indices_offset: "<int>"
+training:
+  epoch: "<int>"
+  global_step: "<int>"
+summaries:
+  loss_ema: "<float>"
+  grad_norm_ema: "<float>"
+  attention_entropy_by_layer: "<array_of_float>"
+  activation_entropy_by_layer: "<array_of_float>"
+notes: "all states required to fully reconstruct the universe"
