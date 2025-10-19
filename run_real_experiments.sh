@@ -23,7 +23,7 @@ run_job() {
   return $status
 }
 
-run_job wikitext_fastlock CUDA_VISIBLE_DEVICES=0 bash scripts/run_replicates.sh \
+run_job wikitext_fastlock env CUDA_VISIBLE_DEVICES=0 bash scripts/run_replicates.sh \
   --real_data wikitext \
   --baseline fixedlr,hypergrad,zclip,spamlite,pbtlite \
   --method A,B,C,D \
@@ -32,7 +32,7 @@ run_job wikitext_fastlock CUDA_VISIBLE_DEVICES=0 bash scripts/run_replicates.sh 
   --budget_stop \
   --retries 2
 
-run_job c4_fastlock CUDA_VISIBLE_DEVICES=0 bash scripts/run_replicates.sh \
+run_job c4_fastlock env CUDA_VISIBLE_DEVICES=0 bash scripts/run_replicates.sh \
   --real_data c4 \
   --baseline fixedlr,hypergrad,zclip,spamlite,pbtlite \
   --method A,B,C,D \
